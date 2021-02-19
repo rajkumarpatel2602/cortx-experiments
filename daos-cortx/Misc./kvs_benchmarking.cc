@@ -74,24 +74,6 @@ int           i, rc;
 
 uuid_t pool_uuid, co_uuid;
 
-static void dts_buf_render( char *buf, unsigned int buf_len )
-{
-   int nr = 'z' - 'a' + 1;
-   int i;
-
-   for ( i = 0; i < buf_len - 1; i++ )
-   {
-      int randv = rand( ) % ( 2 * nr );
-
-      if ( randv < nr )
-         buf[ i ] = 'a' + randv;
-      else
-         buf[ i ] = 'A' + ( randv - nr );
-   }
-
-   buf[ i ] = '\0';
-}
-
 int setup_main( )
 {
 
