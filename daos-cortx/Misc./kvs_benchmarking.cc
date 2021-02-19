@@ -26,6 +26,10 @@
 #define BM_16K_BUF  (1024 * 16)
 #define BM_32K_BUF  (1024 * 32)
 
+
+#define KEY_SIZES 5
+#define VAL_SIZES 5
+
 #define ITERATION_CNT 100
 
 static char          node[ 128 ] = "new_node";
@@ -55,17 +59,9 @@ enum
 #define ENUM_DESC_NR  3
 
 
-/** What to write to the object */
-#define NR_ENTRY 7
 
-char *key[ NR_ENTRY ] = { "key1111", "key2", "key3", "key4", "key5", "key6", "key7"};
-char *val[ NR_ENTRY ] = { "val1", "val2", "val3", "val4", "val5", "val6", "val7"};
 
 #define BUFLEN 100
-
-#define BM_WORKLOADS()   \
-
-
 
 daos_handle_t oh;
 char          rbuf[ BUFLEN ];
@@ -73,6 +69,7 @@ daos_obj_id_t oid;
 int           i, rc;
 
 uuid_t pool_uuid, co_uuid;
+
 
 int setup_main( )
 {
@@ -161,31 +158,17 @@ static void KV_REMOVE_FUNCTION(benchmark::State& state) {
             /* generate different key */
             memset(key_buf,'x', state.range(0)-1);
             sprintf( key_name, "key_%d", i);
-            //printf("key_name is : %s \n", key_name);
             strncpy((char *)key_buf, (char *)key_name, strlen(key_name) );
             
-            printf("key is : %s \n", key_buf);
             state.ResumeTiming();
             
             /* actual function to mearsure time */
-            int rc = 0;
-            daos_size_t size;
-            char rbuf[1024]={0};
 
-            rc = daos_kv_get( oh, DAOS_TX_NONE, 0, key_buf, &size, NULL, NULL );
-            ASSERT( rc == 0, "KV get failed with %d", rc );
-
-            rc = daos_kv_get( oh, DAOS_TX_NONE, 0, key_buf, &size, rbuf, NULL );
-            ASSERT( rc == 0, "KV get failed with %d", rc );
-            printf("rebuf for is : %s\n", rbuf);
-
-            rc = daos_kv_remove( oh, DAOS_TX_NONE, 0, key_buf, NULL );
-            ASSERT( rc == 0, "KV remove failed with %d", rc );
+            daos_kv_remove( oh, DAOS_TX_NONE, 0, key_buf, NULL );
         }
     }
    
     /* free resources */
-
     free(key_buf);
 
     /* tear down */
@@ -217,9 +200,7 @@ static void KV_PUT_FUNCTION(benchmark::State& state) {
             /* generate different key */
             memset(key_buf,'x', state.range(0)-1);
             sprintf( key_name, "key_%d", i);
-
             strncpy((char *)key_buf, (char *)key_name, strlen(key_name) );
-            //printf("key is : %s and value is %s\n", key_buf, val_buf);
             
             state.ResumeTiming();
             
@@ -229,17 +210,18 @@ static void KV_PUT_FUNCTION(benchmark::State& state) {
         }
     }
 
+    //snippet to verify authenticity of last key-value storage.
+#if 0
     char rbuf[state.range(1)]={0};
-
     daos_size_t size=0;
-
     rc = daos_kv_get( oh, DAOS_TX_NONE, 0, key_buf, &size, NULL, NULL );
     ASSERT( rc == 0, "KV get failed with %d", rc );
 
     rc = daos_kv_get( oh, DAOS_TX_NONE, 0, key_buf, &size, rbuf, NULL );
     ASSERT( rc == 0, "KV get failed with %d", rc );
     printf("rebuf for keybuf %s is is : %s\n", key_buf, rbuf);
-   
+#endif   
+
     /* free resources */
     free((char *)key_buf);
     free((char *)val_buf);
@@ -248,7 +230,10 @@ static void KV_PUT_FUNCTION(benchmark::State& state) {
     tear_down();
 }
 
-/* bencharkin function to put keys */
+
+
+
+// Register the function as a benchmark
 BENCHMARK(KV_PUT_FUNCTION)
     ->Args({BM_KEY_64B , BM_1K_BUF, ITERATION_CNT}) 
     ->Args({BM_KEY_64B , BM_4K_BUF, ITERATION_CNT})     
@@ -278,8 +263,6 @@ BENCHMARK(KV_PUT_FUNCTION)
     -> Iterations(1)    
     ->Unit(benchmark::kMillisecond); 
 
-
-/* Benchmarkin function to remove keys */
 BENCHMARK(KV_REMOVE_FUNCTION)
     ->Args({BM_KEY_64B , BM_1K_BUF, ITERATION_CNT}) 
     ->Args({BM_KEY_64B , BM_4K_BUF, ITERATION_CNT})     
@@ -308,6 +291,6 @@ BENCHMARK(KV_REMOVE_FUNCTION)
     ->Args({BM_KEY_1024B , BM_32K_BUF, ITERATION_CNT})  
     -> Iterations(1)    
     ->Unit(benchmark::kMillisecond);    
-
 // // Run the benchmark
+
 BENCHMARK_MAIN();
