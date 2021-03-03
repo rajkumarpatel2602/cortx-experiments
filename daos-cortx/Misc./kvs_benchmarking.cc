@@ -13,32 +13,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define BM_KEY_64B   64
-#define BM_KEY_128B  128
-#define BM_KEY_256B  256
-#define BM_KEY_512B  512
-#define BM_KEY_1024B 1024
-
-#define BM_1K_BUF  1024
-#define BM_4K_BUF  (1024 * 4)
-#define BM_8K_BUF  (1024 * 8)
-#define BM_16K_BUF (1024 * 16)
-#define BM_32K_BUF (1024 * 32)
-
 #define KEY_SIZES 5
 #define VAL_SIZES 5
 
 #define ITERATION_CNT 100
 
-static char          node[ 128 ] = "new_node";
+
 static daos_handle_t poh;
 static daos_handle_t coh;
-#define FAIL( fmt, ... )                                          \
-    do {                                                            \
-        fprintf(stderr, "Process (%s): " fmt " aborting\n",     \
-                node, ## __VA_ARGS__);                          \
-        exit(1);                                                \
-    } while (0)
 
 #define ASSERT( cond, ... )                                       \
     do {                                                            \
@@ -214,10 +196,13 @@ static void KV_GET_FUNCTION( benchmark::State &state ) {
 
    char *rbuf = ( char * )calloc( val_size, sizeof( char ) ); // rbuf to check value
 
-   if ( rbuf == NULL ){
+   if ( rbuf == NULL )
+   {
       printf( "allocation failed \n" );
-      retrun;
+
+      return;
    }
+
    /* actual computation starts here */
    for ( auto _ : state )
    {
@@ -245,7 +230,7 @@ static void KV_GET_FUNCTION( benchmark::State &state ) {
    /* free resources */
    free( ( char * )key_buf );
    free( ( char * )rbuf );
-   free( (char *)val_buf);
+   free( ( char * )val_buf );
 
    /* tear down */
    tear_down( );
@@ -254,11 +239,11 @@ static void KV_GET_FUNCTION( benchmark::State &state ) {
 // Put key
 BENCHMARK( KV_PUT_FUNCTION )
 ->ArgsProduct( { {
-                  1 << 10, 4 << 10, 8 << 10, 16 << 10, 32 << 10
+                  1 << 10, 4 << 10, 8 << 10, 16 << 10, 32 << 10 // value buffer sizes
                }, {
-                     64, 128, 256, 512, 1024
+                     64, 128, 256, 512, 1024 // key sizes
                   }, {
-                     100
+                     100 // number of keys
                   }
                } )
 ->Iterations( 1 )
@@ -290,6 +275,5 @@ BENCHMARK( KV_REMOVE_FUNCTION )
 ->Iterations( 1 )
 ->Unit( benchmark::kMillisecond );
 
-// // Run the benchmark
-
+// Run the benchmark
 BENCHMARK_MAIN( );
