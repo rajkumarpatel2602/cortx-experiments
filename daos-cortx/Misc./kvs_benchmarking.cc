@@ -3,7 +3,6 @@
  */
 #include <benchmark/benchmark.h>
 #include <cstdio>
-
 #include <daos.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -18,22 +17,29 @@
 
 #define ITERATION_CNT 100
 
+static char node[ 128 ] = "new_node";
 
 static daos_handle_t poh;
 static daos_handle_t coh;
 
-#define ASSERT( cond, ... )                                       \
+#define FAIL( fmt, ... )                                            \
     do {                                                            \
-        if (!(cond))                                            \
-        FAIL(__VA_ARGS__);                              \
+        fprintf(stderr, "Process (%s): " fmt " aborting\n",         \
+                node, ## __VA_ARGS__);                              \
+        exit(1);                                                    \
+    } while (0)
+
+#define ASSERT( cond, ... )                                         \
+    do {                                                            \
+        if (!(cond))                                                \
+        FAIL(__VA_ARGS__);                                          \
     } while (0)
 
 #define BUFLEN 100
 
 daos_handle_t oh;
-char          rbuf[ BUFLEN ];
 daos_obj_id_t oid;
-int           i, rc;
+int           rc;
 
 uuid_t pool_uuid, co_uuid;
 
@@ -95,8 +101,8 @@ static void KV_REMOVE_FUNCTION( benchmark::State &state ) {
       0
    };
 
-   unsigned int key_size = state.range( 1 );
    unsigned int val_size = state.range( 0 );
+   unsigned int key_size = state.range( 1 );
    unsigned int num_keys = state.range( 2 );
 
    /* allocate key and value buffers */
@@ -118,7 +124,6 @@ static void KV_REMOVE_FUNCTION( benchmark::State &state ) {
          state.ResumeTiming( );
 
          /* actual function to mearsure time */
-
          daos_kv_remove( oh, DAOS_TX_NONE, 0, key_buf, NULL );
       }
    }
@@ -139,8 +144,8 @@ static void KV_PUT_FUNCTION( benchmark::State &state ) {
       0
    };
 
-   unsigned int key_size = state.range( 1 );
    unsigned int val_size = state.range( 0 );
+   unsigned int key_size = state.range( 1 );
    unsigned int num_keys = state.range( 2 );
 
    /* allocate key and value buffers */
@@ -185,8 +190,8 @@ static void KV_GET_FUNCTION( benchmark::State &state ) {
       0
    };
 
-   unsigned int key_size = state.range( 1 );
    unsigned int val_size = state.range( 0 );
+   unsigned int key_size = state.range( 1 );
    unsigned int num_keys = state.range( 2 );
 
    /* allocate key and value buffers */
@@ -223,6 +228,7 @@ static void KV_GET_FUNCTION( benchmark::State &state ) {
 
          state.ResumeTiming( );
 
+         /* actual function to mearsure time */
          daos_kv_get( oh, DAOS_TX_NONE, 0, key_buf, &size, rbuf, NULL );
       }
    }
@@ -239,11 +245,11 @@ static void KV_GET_FUNCTION( benchmark::State &state ) {
 // Put key
 BENCHMARK( KV_PUT_FUNCTION )
 ->ArgsProduct( { {
-                  1 << 10, 4 << 10, 8 << 10, 16 << 10, 32 << 10 // value buffer sizes
+                  1 << 10, 4 << 10, 8 << 10, 16 << 10, 32 << 10 // value buffer sizes [1K, 4K, 8K, 16K, 32K]
                }, {
-                     64, 128, 256, 512, 1024 // key sizes
+                     64, 128, 256, 512, 1024 // key sizes [64B, 128B, 256B, 512B, 1024B]
                   }, {
-                     100 // number of keys
+                     100 // number of keys generated for each value buffer size and key size combination
                   }
                } )
 ->Iterations( 1 )
